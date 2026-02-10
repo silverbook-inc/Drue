@@ -1,43 +1,60 @@
 # Drue
 
-Drue is a TODO orchestration app. It helps you meet your tasks where they already live, starting with email.
+Drue helps you organize tasks across the places where work already happens, starting with email.
+
+## What is in this repo
+
+- `apps/web`: React + Vite frontend (`/`, `/login`, `/auth/callback`, `/dashboard`)
+- `apps/api`: Express TypeScript API (`/health`, protected `/me`)
+- Monorepo using npm workspaces
 
 ## Tech stack
 
-- Frontend: React + Vite + TypeScript
-- Backend API: Express + TypeScript
-- Auth: Supabase Auth with Google OAuth
-- Repo shape: npm workspaces monorepo
+- Frontend: React, Vite, TypeScript
+- Backend: Express, TypeScript
+- Auth: Supabase Auth with Google OAuth (PKCE)
 
-## Project structure
+## Prerequisites
 
-- `apps/web`: landing page, login, auth callback, placeholder dashboard
-- `apps/api`: API server with health check and protected sample endpoint
+- Node 22 (`nvm use 22`)
+- npm
+- Supabase project
+- Google Cloud OAuth credentials
 
-## 1) Create Supabase project and Google auth
+## Quick start
 
-1. Create a Supabase project.
-2. In Supabase: `Authentication -> Providers -> Google` and enable Google provider.
-3. In Google Cloud Console:
-- Create OAuth client credentials.
-- Add authorized redirect URI: `https://<YOUR_SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`
-4. In Supabase redirect URL config:
-- Add `http://localhost:5173/auth/callback`
-- Add your production callback URL later.
+1. Install dependencies:
 
-Reference docs:
+```bash
+npm install
+```
 
-- https://supabase.com/docs/guides/auth/social-login/auth-google
-- https://supabase.com/docs/guides/auth/redirect-urls
-- https://supabase.com/docs/guides/auth/quickstarts/react
+2. Create env files from examples:
 
-## 2) Configure environment variables
+```bash
+cp apps/web/.env.example apps/web/.env
+cp apps/api/.env.example apps/api/.env
+```
+
+3. Fill in the env values (see below).
+
+4. Start both apps:
+
+```bash
+npm run dev
+```
+
+5. Open:
+- Web: `http://localhost:5173`
+- API health: `http://localhost:3001/health`
+
+## Environment variables
 
 ### `apps/web/.env`
 
 ```bash
 VITE_SUPABASE_URL=https://<YOUR_PROJECT_REF>.supabase.co
-VITE_SUPABASE_ANON_KEY=<YOUR_SUPABASE_ANON_KEY>
+VITE_SUPABASE_ANON_KEY=<YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY>
 VITE_API_URL=http://localhost:3001
 ```
 
@@ -50,24 +67,39 @@ SUPABASE_URL=https://<YOUR_PROJECT_REF>.supabase.co
 SUPABASE_JWT_ISSUER=https://<YOUR_PROJECT_REF>.supabase.co/auth/v1
 ```
 
-## 3) Install and run
+## Supabase + Google auth setup
 
-```bash
-npm install
-npm run dev
-```
+1. In Supabase, enable Google provider:
+- `Authentication -> Providers -> Google`
+- Paste your Google `Client ID` and `Client Secret`
 
-Web app: `http://localhost:5173`
+2. In Google Cloud OAuth client:
+- Authorized JavaScript origin: `http://localhost:5173`
+- Authorized redirect URI: `https://<YOUR_PROJECT_REF>.supabase.co/auth/v1/callback`
 
-API health check: `http://localhost:3001/health`
+3. In Supabase URL settings:
+- `Authentication -> URL Configuration`
+- `Site URL`: `http://localhost:5173`
+- Add redirect URL: `http://localhost:5173/auth/callback`
 
-## Brand direction (v1 proposal)
+## Useful scripts
 
-- Name tone: simple, operational, calm
-- Palette:
-- `#0B1020` (ink)
-- `#EEF3F8` (mist)
-- `#3A7AFE` (signal)
-- `#19A76B` (status)
-- Typography: `Space Grotesk` for display, `Instrument Sans` for body
+- `npm run dev`: run web + API together
+- `npm run dev:web`: run only frontend
+- `npm run dev:api`: run only API
+- `npm run build`: build web + API
+- `npm run lint`: lint web + API
 
+## Troubleshooting
+
+- OAuth callback errors:
+- Check all callback/origin URLs match exactly (`localhost` vs `127.0.0.1`).
+- Confirm Google provider is enabled in Supabase and credentials are valid.
+- Login blocked in Google:
+- If OAuth consent screen is in Testing mode, add your account as a test user.
+
+## Brand direction (v1)
+
+- Tone: simple, operational, calm
+- Colors: `#0B1020` (ink), `#EEF3F8` (mist), `#3A7AFE` (signal), `#19A76B` (status)
+- Typography: `Space Grotesk` (display), `Instrument Sans` (body)
