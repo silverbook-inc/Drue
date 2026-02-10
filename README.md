@@ -65,6 +65,7 @@ PORT=3001
 CORS_ORIGIN=http://localhost:5173
 SUPABASE_URL=https://<YOUR_PROJECT_REF>.supabase.co
 SUPABASE_JWT_ISSUER=https://<YOUR_PROJECT_REF>.supabase.co/auth/v1
+GMAIL_TOKEN_FILE=.local/gmail_tokens.txt
 ```
 
 ## Supabase + Google auth setup
@@ -81,6 +82,11 @@ SUPABASE_JWT_ISSUER=https://<YOUR_PROJECT_REF>.supabase.co/auth/v1
 - `Authentication -> URL Configuration`
 - `Site URL`: `http://localhost:5173`
 - Add redirect URL: `http://localhost:5173/auth/callback`
+
+4. For automatic Gmail token capture at login:
+- Add Gmail readonly scope in your app OAuth setup.
+- Drue requests this scope during Google login and stores refresh tokens in a local file during this temporary phase.
+- File format: `email:token` (one per line), default path `apps/api/.local/gmail_tokens.txt`.
 
 ## Useful scripts
 

@@ -8,11 +8,29 @@ type MeResponse = {
   email?: string | null;
 };
 
+function toErrorMessage(value: unknown, fallback: string): string {
+  if (typeof value === 'string' && value.trim()) {
+    return value;
+  }
+
+  if (value && typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  }
+
+  return fallback;
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [profile, setProfile] = useState<MeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [printResult, setPrintResult] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -34,8 +52,8 @@ export default function DashboardPage() {
       });
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as { detail?: string };
-        setError(payload.detail ?? 'Failed to load profile from API.');
+        const payload = (await response.json().catch(() => ({}))) as { detail?: unknown };
+        setError(toErrorMessage(payload.detail, 'Failed to load profile from API.'));
         return;
       }
 
@@ -50,6 +68,45 @@ export default function DashboardPage() {
     setLoading(true);
     await supabase.auth.signOut();
     navigate('/login', { replace: true });
+  };
+
+  const printFirstFiveEmails = async () => {
+    setPrinting(true);
+    setError(null);
+    setPrintResult(null);
+
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      setError('No active session found.');
+      setPrinting(false);
+      return;
+    }
+
+    const response = await fetch(`${env.API_URL}/gmail/print-first-five`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`
+      }
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as {
+      printed?: number;
+      detail?: unknown;
+      error?: unknown;
+    };
+
+    if (!response.ok) {
+      setError(toErrorMessage(payload.detail ?? payload.error, 'Failed to print Gmail emails.'));
+      setPrinting(false);
+      return;
+    }
+
+    setPrintResult(`Printed ${payload.printed ?? 0} emails to API console.`);
+    setPrinting(false);
   };
 
   return (
@@ -67,6 +124,10 @@ export default function DashboardPage() {
           Signed in as: <strong>{profile?.email ?? 'Loading...'}</strong>
         </p>
         <p>User id: {profile?.id ?? 'Loading...'}</p>
+        <button onClick={printFirstFiveEmails} className="button primary" disabled={printing}>
+          {printing ? 'Printing...' : 'Print first 5 emails in API console'}
+        </button>
+        {printResult ? <p>{printResult}</p> : null}
         {error ? <p className="error">{error}</p> : null}
       </section>
     </main>
