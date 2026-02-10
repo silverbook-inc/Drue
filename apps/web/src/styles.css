@@ -183,6 +183,19 @@ p {
   width: min(800px, 92vw);
 }
 
+.email-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.8rem;
+  margin-top: 0.7rem;
+  background: #f9fbff;
+}
+
+.email-item h3 {
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
 @media (max-width: 900px) {
   .feature-strip {
     grid-template-columns: 1fr;

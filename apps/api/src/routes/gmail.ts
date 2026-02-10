@@ -155,13 +155,8 @@ gmailRouter.post('/print-first-five', requireAuth, async (req, res) => {
       })
     );
 
-    const printable = metadataResults.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
-    console.log(`[GMAIL] ${email} first ${printable.length} messages`);
-    for (const entry of printable) {
-      console.log(`[GMAIL] ${entry.date} | ${entry.from} | ${entry.subject} | ${entry.snippet}`);
-    }
-
-    res.json({ printed: printable.length });
+    const emails = metadataResults.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+    res.json({ emails, count: emails.length });
   } catch (error) {
     res.status(500).json({
       error: 'Failed to print Gmail messages',

@@ -8,6 +8,14 @@ type MeResponse = {
   email?: string | null;
 };
 
+type GmailEmail = {
+  id: string;
+  subject: string;
+  from: string;
+  date: string;
+  snippet: string;
+};
+
 function toErrorMessage(value: unknown, fallback: string): string {
   if (typeof value === 'string' && value.trim()) {
     return value;
@@ -30,7 +38,7 @@ export default function DashboardPage() {
   const [printing, setPrinting] = useState(false);
   const [profile, setProfile] = useState<MeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [printResult, setPrintResult] = useState<string | null>(null);
+  const [emails, setEmails] = useState<GmailEmail[]>([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -73,7 +81,6 @@ export default function DashboardPage() {
   const printFirstFiveEmails = async () => {
     setPrinting(true);
     setError(null);
-    setPrintResult(null);
 
     const {
       data: { session }
@@ -94,7 +101,8 @@ export default function DashboardPage() {
     });
 
     const payload = (await response.json().catch(() => ({}))) as {
-      printed?: number;
+      emails?: GmailEmail[];
+      count?: number;
       detail?: unknown;
       error?: unknown;
     };
@@ -105,7 +113,7 @@ export default function DashboardPage() {
       return;
     }
 
-    setPrintResult(`Printed ${payload.printed ?? 0} emails to API console.`);
+    setEmails(payload.emails ?? []);
     setPrinting(false);
   };
 
@@ -125,9 +133,24 @@ export default function DashboardPage() {
         </p>
         <p>User id: {profile?.id ?? 'Loading...'}</p>
         <button onClick={printFirstFiveEmails} className="button primary" disabled={printing}>
-          {printing ? 'Printing...' : 'Print first 5 emails in API console'}
+          {printing ? 'Loading emails...' : 'Load first 5 emails'}
         </button>
-        {printResult ? <p>{printResult}</p> : null}
+        {emails.length > 0 ? (
+          <div>
+            {emails.map((email) => (
+              <article key={email.id} className="email-item">
+                <h3>{email.subject}</h3>
+                <p>
+                  <strong>From:</strong> {email.from}
+                </p>
+                <p>
+                  <strong>Date:</strong> {email.date}
+                </p>
+                <p>{email.snippet || '(no snippet)'}</p>
+              </article>
+            ))}
+          </div>
+        ) : null}
         {error ? <p className="error">{error}</p> : null}
       </section>
     </main>
