@@ -1,0 +1,16 @@
+{
+  "name": "drue",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @drue/web & npm run dev -w @drue/api",
+    "dev:web": "npm run dev -w @drue/web",
+    "dev:api": "npm run dev -w @drue/api",
+    "build": "npm run build -w @drue/web && npm run build -w @drue/api",
+    "lint": "npm run lint -w @drue/web && npm run lint -w @drue/api"
+  }
+}
