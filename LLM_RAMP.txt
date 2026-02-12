@@ -1,0 +1,124 @@
+You are joining the Drue codebase. Read this fully, then execute work with minimal back-and-forth.
+
+GOAL
+Drue is a task orchestration app. Current scope is:
+1) landing + auth UX
+2) Supabase Google login
+3) temporary Gmail integration that can fetch first 5 emails for signed-in users
+
+REPO SHAPE
+- Monorepo with npm workspaces.
+- Root: /Users/filipslatinac/projects/Drue
+- Frontend: /Users/filipslatinac/projects/Drue/apps/web (React + Vite + TS)
+- API: /Users/filipslatinac/projects/Drue/apps/api (Express + TS)
+
+ROOT SCRIPTS
+- npm run dev
+- npm run dev:web
+- npm run dev:api
+- npm run build
+- npm run lint
+
+HIGH-LEVEL ARCHITECTURE
+- Frontend authenticates with Supabase using Google OAuth PKCE.
+- Frontend sends Supabase JWT to API as Bearer token.
+- API verifies JWT using Supabase JWKS and issuer.
+- After login callback, frontend sends Google provider_refresh_token to API endpoint /gmail/token.
+- API stores Gmail token in local file (temporary, not DB): email:token per line.
+- Dashboard button calls API endpoint /gmail/print-first-five.
+- API reads stored token, exchanges refresh token -> access token, fetches first 5 Gmail messages, returns structured email list to frontend.
+
+IMPORTANT CURRENT DECISION (TEMPORARY)
+- Gmail tokens are file-based (NOT database).
+- File path controlled by GMAIL_TOKEN_FILE, default .local/gmail_tokens.txt under API app working directory.
+- This is explicitly temporary and expected to be replaced by DB schema + encryption later.
+
+CRITICAL FILES
+Frontend
+- /Users/filipslatinac/projects/Drue/apps/web/src/App.tsx
+- /Users/filipslatinac/projects/Drue/apps/web/src/lib/env.ts
+- /Users/filipslatinac/projects/Drue/apps/web/src/lib/supabase.ts
+- /Users/filipslatinac/projects/Drue/apps/web/src/pages/LoginPage.tsx
+- /Users/filipslatinac/projects/Drue/apps/web/src/pages/AuthCallbackPage.tsx
+- /Users/filipslatinac/projects/Drue/apps/web/src/pages/DashboardPage.tsx
+- /Users/filipslatinac/projects/Drue/apps/web/src/components/AuthGate.tsx
+- /Users/filipslatinac/projects/Drue/apps/web/src/styles.css
+
+API
+- /Users/filipslatinac/projects/Drue/apps/api/src/server.ts
+- /Users/filipslatinac/projects/Drue/apps/api/src/env.ts
+- /Users/filipslatinac/projects/Drue/apps/api/src/middleware/auth.ts
+- /Users/filipslatinac/projects/Drue/apps/api/src/routes/me.ts
+- /Users/filipslatinac/projects/Drue/apps/api/src/routes/gmail.ts
+- /Users/filipslatinac/projects/Drue/apps/api/src/lib/gmailTokenStore.ts
+- /Users/filipslatinac/projects/Drue/apps/api/src/express.d.ts
+
+AUTH FLOW DETAILS
+1) User clicks Google login on /login.
+2) Frontend requests scopes:
+   - openid email profile
+   - https://www.googleapis.com/auth/gmail.readonly
+   with query params for offline access + consent.
+3) Redirect to /auth/callback.
+4) Callback exchanges code for session.
+5) If provider_refresh_token is present, frontend POSTs it to API /gmail/token using Supabase access token for auth.
+6) User lands on /dashboard.
+
+GMAIL FETCH FLOW DETAILS
+1) Dashboard button: POST /gmail/print-first-five with Supabase JWT.
+2) API authenticates request.
+3) API resolves user email from JWT.
+4) API reads stored token for that email from token file.
+5) API expects refresh token, exchanges it at Google OAuth token endpoint.
+6) API calls Gmail messages list (maxResults=5).
+7) API calls message metadata for each message (Subject/From/Date).
+8) API returns list to frontend, frontend renders cards.
+
+KNOWN LIMITATIONS / RISKS
+- Token storage is plaintext local file and not suitable for production.
+- No webhook/push ingestion yet; current Gmail retrieval is button-triggered fetch.
+- No robust retry/backoff layer around Gmail API calls.
+- No persistence for watch state/history IDs yet.
+- Secrets may exist in local .env files; do not print them in logs or commit them.
+
+ENVIRONMENT VARIABLES
+Web (apps/web/.env)
+- VITE_SUPABASE_URL
+- VITE_SUPABASE_ANON_KEY
+- VITE_API_URL
+
+API (apps/api/.env)
+- PORT
+- CORS_ORIGIN
+- SUPABASE_URL
+- SUPABASE_JWT_ISSUER
+- GMAIL_TOKEN_FILE
+- GOOGLE_CLIENT_ID
+- GOOGLE_CLIENT_SECRET
+
+OPERATIONAL NOTES
+- Node version expected: 22 (nvm use 22).
+- Build/lint should pass before finalizing changes.
+- Current project intentionally ignores local token folder in git.
+
+WHAT TO DO WHEN MAKING CHANGES
+1) Keep frontend/API contract explicit.
+2) Preserve JWT auth on API routes.
+3) Never require frontend to send Gmail token directly for fetch paths.
+4) Prefer server-side token exchange from stored refresh token.
+5) Run build + lint after edits.
+6) Document behavior changes in README if they affect setup/usage.
+
+NEAR-TERM ROADMAP (LIKELY NEXT)
+- Replace file token storage with DB-backed encrypted storage.
+- Add Gmail push notifications via users.watch + Pub/Sub.
+- Add per-user watch expiration and historyId checkpointing.
+- Add worker/queue flow for webhook events and incremental sync.
+
+IF YOU START A NEW TASK
+First read:
+- /Users/filipslatinac/projects/Drue/README.md
+- /Users/filipslatinac/projects/Drue/apps/api/src/routes/gmail.ts
+- /Users/filipslatinac/projects/Drue/apps/web/src/pages/AuthCallbackPage.tsx
+- /Users/filipslatinac/projects/Drue/apps/web/src/pages/DashboardPage.tsx
+Then implement with minimal surface area and keep behavior deterministic.
