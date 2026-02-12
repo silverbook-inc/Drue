@@ -14,5 +14,6 @@ export const env = {
   supabaseUrl: process.env.SUPABASE_URL as string,
   supabaseJwtIssuer: process.env.SUPABASE_JWT_ISSUER as string,
   googleClientId: process.env.GOOGLE_CLIENT_ID,
-  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  gmailPubsubTopic: process.env.GMAIL_PUBSUB_TOPIC
 };

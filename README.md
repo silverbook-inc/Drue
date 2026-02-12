@@ -45,6 +45,7 @@ npm run dev
 ```
 
 5. Open:
+
 - Web: `http://localhost:5173`
 - API health: `http://localhost:3001/health`
 
@@ -71,19 +72,23 @@ GMAIL_TOKEN_FILE=.local/gmail_tokens.txt
 ## Supabase + Google auth setup
 
 1. In Supabase, enable Google provider:
+
 - `Authentication -> Providers -> Google`
 - Paste your Google `Client ID` and `Client Secret`
 
 2. In Google Cloud OAuth client:
+
 - Authorized JavaScript origin: `http://localhost:5173`
 - Authorized redirect URI: `https://<YOUR_PROJECT_REF>.supabase.co/auth/v1/callback`
 
 3. In Supabase URL settings:
+
 - `Authentication -> URL Configuration`
 - `Site URL`: `http://localhost:5173`
 - Add redirect URL: `http://localhost:5173/auth/callback`
 
 4. For automatic Gmail token capture at login:
+
 - Add Gmail readonly scope in your app OAuth setup.
 - Drue requests this scope during Google login and stores refresh tokens in a local file during this temporary phase.
 - File format: `email:token` (one per line), default path `apps/api/.local/gmail_tokens.txt`.
@@ -91,6 +96,7 @@ GMAIL_TOKEN_FILE=.local/gmail_tokens.txt
 ## Useful scripts
 
 - `npm run dev`: run web + API together
+- `ngrok http 3001`for the pubsub gmail integration, you might have to change the push address in the subscription to make this work.
 - `npm run dev:web`: run only frontend
 - `npm run dev:api`: run only API
 - `npm run build`: build web + API

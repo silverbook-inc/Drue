@@ -16,6 +16,13 @@ type GmailEmail = {
   snippet: string;
 };
 
+type GmailWatchStartResponse = {
+  email: string;
+  topic: string;
+  historyId: string | null;
+  expiration: string | null;
+};
+
 function toErrorMessage(value: unknown, fallback: string): string {
   if (typeof value === 'string' && value.trim()) {
     return value;
@@ -36,9 +43,12 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [startingWatch, setStartingWatch] = useState(false);
+  const [stoppingWatch, setStoppingWatch] = useState(false);
   const [profile, setProfile] = useState<MeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [emails, setEmails] = useState<GmailEmail[]>([]);
+  const [watchInfo, setWatchInfo] = useState<GmailWatchStartResponse | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -117,6 +127,74 @@ export default function DashboardPage() {
     setPrinting(false);
   };
 
+  const startGmailWatch = async () => {
+    setStartingWatch(true);
+    setError(null);
+
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      setError('No active session found.');
+      setStartingWatch(false);
+      return;
+    }
+
+    const response = await fetch(`${env.API_URL}/gmail/watch/start`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as
+      | GmailWatchStartResponse
+      | { detail?: unknown; error?: unknown };
+
+    if (!response.ok) {
+      const maybeErrorPayload = payload as { detail?: unknown; error?: unknown };
+      setError(toErrorMessage(maybeErrorPayload.detail ?? maybeErrorPayload.error, 'Failed to start Gmail watch.'));
+      setStartingWatch(false);
+      return;
+    }
+
+    setWatchInfo(payload as GmailWatchStartResponse);
+    setStartingWatch(false);
+  };
+
+  const stopGmailWatch = async () => {
+    setStoppingWatch(true);
+    setError(null);
+
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      setError('No active session found.');
+      setStoppingWatch(false);
+      return;
+    }
+
+    const response = await fetch(`${env.API_URL}/gmail/watch/stop`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as { detail?: unknown; error?: unknown };
+    if (!response.ok) {
+      setError(toErrorMessage(payload.detail ?? payload.error, 'Failed to stop Gmail watch.'));
+      setStoppingWatch(false);
+      return;
+    }
+
+    setWatchInfo(null);
+    setStoppingWatch(false);
+  };
+
   return (
     <main className="page dashboard-page">
       <header className="dashboard-header">
@@ -135,6 +213,27 @@ export default function DashboardPage() {
         <button onClick={printFirstFiveEmails} className="button primary" disabled={printing}>
           {printing ? 'Loading emails...' : 'Load first 5 emails'}
         </button>
+        <button onClick={startGmailWatch} className="button ghost" disabled={startingWatch}>
+          {startingWatch ? 'Starting watch...' : 'Start Gmail Watch'}
+        </button>
+        <button onClick={stopGmailWatch} className="button ghost" disabled={stoppingWatch}>
+          {stoppingWatch ? 'Stopping watch...' : 'Stop Gmail Watch'}
+        </button>
+        {watchInfo ? (
+          <div className="email-item">
+            <h3>Watch Active</h3>
+            <p>
+              <strong>Topic:</strong> {watchInfo.topic}
+            </p>
+            <p>
+              <strong>History ID:</strong> {watchInfo.historyId ?? '(none)'}
+            </p>
+            <p>
+              <strong>Expiration:</strong>{' '}
+              {watchInfo.expiration ? new Date(Number(watchInfo.expiration)).toISOString() : '(none)'}
+            </p>
+          </div>
+        ) : null}
         {emails.length > 0 ? (
           <div>
             {emails.map((email) => (
